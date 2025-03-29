@@ -1,0 +1,76 @@
+//INSTALAÇÃO DO MONGODB
+
+docker pull mongodb/mongodb-community-server:latest
+
+docker run --name mongodb1 -p 27017:27017 -d mongodb/mongodb-community-server:latest
+
+docker container ls
+
+db.runCommand(
+   {
+      hello: 1
+   }
+)
+
+//CRIAÇÃO DO CLUSTER E SUAS INSTÂNCIAS
+
+docker network create mngCluster
+
+docker run -d --rm -p 27017:27017 --name mongo1 --network mongoCluster mongodb/mongodb-community-server:latest --replSet myReplicaSet --bind_ip localhost,mongo1
+
+docker run -d --rm -p 27018:27017 --name mongo2 --network mongoCluster mongodb/mongodb-community-server:latest --replSet myReplicaSet --bind_ip localhost,mongo2
+
+docker run -d --rm -p 27019:27017 --name mongo3 --network mongoCluster mongodb/mongodb-community-server:latest --replSet myReplicaSet --bind_ip localhost,mongo3
+
+docker run -d --rm -p 27020:27017 --name mongo4 --network mongoCluster mongodb/mongodb-community-server:latest --replSet myReplicaSet --bind_ip localhost,mongo4
+
+docker exec -it mongo1 mongosh
+
+db.runCommand ({hello:1})
+
+//REPLICASET
+
+rs.initiate ({ _id: "myReplicaSet", members:[{_id:0, host: "mongo1"}, {_id:1, host: "mongo2"}, {_id:3, host: "mongo3"}, {_id:3, host: "mongo4"}]})
+
+exit
+
+docker exec -it mongo1 mongosh --eval "rs.status()"
+
+//MONGODB COMPASS (CONEXÃO)
+
+mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.3.8
+
+//(MONGODB SHELL)
+
+rs.isMaster().primary
+
+use CorporeSystem
+
+db.cliente.insertOne({codigo:1, nome: "Pedro"});
+db.cliente.insertOne({codigo:2, nome: "Lucas"});
+db.cliente.insertOne({codigo:3, nome: "Gustavo"});
+db.cliente.insertOne({codigo:4, nome: "Pedro Henrique"});
+db.cliente.insertOne({codigo:5, nome: "Vinicius"});
+
+db.cliente.find()
+
+//DERRUBANDO O NÓ PRIMÁRIO E VERIFICAÇÃO
+
+docker stop mongo1
+
+docker exec -it mongo2 mongosh --eval "rs.status()"
+
+db.cliente.insertOne({codigo:6, nome: "Joao"});
+
+//CONEXÃO AO NOVO NÓ PRIMÁRIO
+
+mongodb://127.0.0.1:27020/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.3.8
+
+use CorporeSystem
+
+db.cliente.findOne()
+
+db.cliente.insertOne({codigo:7, nome: "Pedro Avelino"});
+
+
+
